@@ -19,7 +19,7 @@ func PostMessage(config util.Config, body string) error {
 				Type: BlockTypeSection,
 				Text: &BlockText{
 					Type: BlockTextTypeMarkdown,
-					Text: ":fire::fire: Rate Limiting Rule Triggered :fire::fire:",
+					Text: ":fire::fire: Rate Limit Rule Triggered :fire::fire:",
 				},
 			},
 			{
