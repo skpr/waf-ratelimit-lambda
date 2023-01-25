@@ -45,16 +45,16 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 
 	log.Println("Inspecting event")
 
-	var event cloudwatch.Event
+	var detail cloudwatch.EventDetail
 
-	if err := json.Unmarshal(e.Detail, &event); err != nil {
+	if err := json.Unmarshal(e.Detail, &detail); err != nil {
 		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 
-	if !cloudwatch.HasBecomeAlarm(event) {
+	if !cloudwatch.HasBecomeAlarm(detail) {
 		log.Printf("Skipping. Event did not become alarm (previous state = %s, current state = %s)\n",
-			event.Detail.PreviousState.Value,
-			event.Detail.State.Value)
+			detail.PreviousState.Value,
+			detail.State.Value)
 		return nil
 	}
 
