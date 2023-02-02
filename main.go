@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
@@ -25,9 +26,7 @@ var (
 )
 
 func main() {
-	if err := HandleLambdaEvent(context.TODO(), events.CloudWatchEvent{}); err != nil {
-		panic(err)
-	}
+	lambda.Start(HandleLambdaEvent)
 }
 
 // HandleLambdaEvent will respond to a CloudWatch Alarm, check for rate limited IP addresses and send a message to Slack.
@@ -46,16 +45,16 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 
 	log.Println("Inspecting event")
 
-	var event cloudwatch.Event
+	var detail cloudwatch.EventDetail
 
-	if err := json.Unmarshal(e.Detail, &event); err != nil {
+	if err := json.Unmarshal(e.Detail, &detail); err != nil {
 		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 
-	if !cloudwatch.HasBecomeAlarm(event) {
+	if !cloudwatch.HasBecomeAlarm(detail) {
 		log.Printf("Skipping. Event did not become alarm (previous state = %s, current state = %s)\n",
-			event.Detail.PreviousState.Value,
-			event.Detail.State.Value)
+			detail.PreviousState.Value,
+			detail.State.Value)
 		return nil
 	}
 

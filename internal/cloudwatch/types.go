@@ -1,9 +1,5 @@
 package cloudwatch
 
-type Event struct {
-	Detail EventDetail `json:"detail"`
-}
-
 // EventDetail used to check the previous and current state of the CloudWatch Alarm.
 type EventDetail struct {
 	PreviousState EventDetailState `json:"previousState"`
