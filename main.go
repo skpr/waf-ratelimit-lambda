@@ -83,23 +83,18 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 	ips = append(ips, resp.ManagedKeysIPV4.Addresses...)
 	ips = append(ips, resp.ManagedKeysIPV6.Addresses...)
 
-	log.Println("Sending Slack messages")
+	if len(ips) == 0 {
+		log.Println("No IPs were found. Skipping...")
+	} else {
+		log.Println("Sending Slack messages")
 
-	err = slack.PostMessage(config, getMessage(ips))
-	if err != nil {
-		return fmt.Errorf("failed to post Slack message: %w", err)
+		err = slack.PostMessage(config, ips)
+		if err != nil {
+			return fmt.Errorf("failed to post Slack message: %w", err)
+		}
 	}
 
 	log.Println("Function complete")
 
 	return nil
-}
-
-// Helper function to get message depends on if there are IP addresses.
-func getMessage(ips []string) string {
-	if len(ips) == 0 {
-		return "IP addresses not found. Check sampling data for WAF and Rule."
-	}
-
-	return fmt.Sprintf("IP addresses currently rate limited:\n\n %s", strings.Join(ips, "\n"))
 }

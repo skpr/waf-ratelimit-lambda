@@ -9,6 +9,7 @@ type BlockType string
 const (
 	BlockTypeContext BlockType = "context"
 	BlockTypeSection BlockType = "section"
+	BlockTypeHeader  BlockType = "header"
 )
 
 type Block struct {
@@ -34,6 +35,8 @@ type BlockTextType string
 const (
 	// BlockTextTypeMarkdown used to declare a block as markdown.
 	BlockTextTypeMarkdown BlockTextType = "mrkdwn"
+	// BlockTextTypePlainText used to declare a block as plain text.
+	BlockTextTypePlainText BlockTextType = "plain_text"
 )
 
 type BlockText struct {

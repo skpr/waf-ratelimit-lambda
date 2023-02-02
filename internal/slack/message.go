@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
@@ -12,14 +13,14 @@ import (
 )
 
 // PostMessage to Slack channel.
-func PostMessage(config util.Config, body string) error {
+func PostMessage(config util.Config, ips []string) error {
 	message := Message{
 		Blocks: []Block{
 			{
-				Type: BlockTypeSection,
+				Type: BlockTypeHeader,
 				Text: &BlockText{
-					Type: BlockTextTypeMarkdown,
-					Text: ":fire::fire: Rate Limit Rule Triggered :fire::fire:",
+					Type: BlockTextTypePlainText,
+					Text: ":fire: Rate Limit Rule Triggered :fire:",
 				},
 			},
 			{
@@ -43,7 +44,7 @@ func PostMessage(config util.Config, body string) error {
 				Type: BlockTypeSection,
 				Text: &BlockText{
 					Type: BlockTextTypeMarkdown,
-					Text: body,
+					Text: fmt.Sprintf("IP addresses currently rate limited:\n\n %s", strings.Join(ips, "\n")),
 				},
 			},
 		},
