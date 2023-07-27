@@ -11,9 +11,9 @@ func TestGetIPfromCIDR(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "1.2.3.4", ip)
 
-	ip, err = GetIPfromCIDR("1.2.3.4")
+	_, err = GetIPfromCIDR("1.2.3.4")
 	assert.Error(t, err)
 
-	ip, err = GetIPfromCIDR("1.2.3.4/16")
+	_, err = GetIPfromCIDR("1.2.3.4/16")
 	assert.Error(t, err)
 }
