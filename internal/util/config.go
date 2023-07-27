@@ -12,10 +12,11 @@ type Config struct {
 	WebACLId        string   `mapstructure:"WAF_ACL_ID"`
 	WebACLName      string   `mapstructure:"WAF_ACL_NAME"`
 	RuleName        string   `mapstructure:"WAF_ACL_RULE_NAME"`
+	IPInfoToken     string   `mapstructure:"IPINFO_TOKEN"`
 	SlackWebhookURL []string `mapstructure:"SLACK_WEBHOOK_URL"`
 }
 
-// Validate validates the config.
+// Validate checks that all required configuration is present.
 func (c Config) Validate() []string {
 	var errors []string
 
@@ -33,6 +34,10 @@ func (c Config) Validate() []string {
 
 	if c.RuleName == "" {
 		errors = append(errors, "WAF_ACL_RULE_NAME is a required variable")
+	}
+
+	if len(c.IPInfoToken) == 0 {
+		errors = append(errors, "IPINFO_TOKEN is a required variable")
 	}
 
 	if len(c.SlackWebhookURL) == 0 {

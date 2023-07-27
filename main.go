@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -13,6 +14,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2/types"
+	"github.com/ipinfo/go/v2/ipinfo"
 
 	"github.com/skpr/waf-ratelimit-lambda/internal/cloudwatch"
 	"github.com/skpr/waf-ratelimit-lambda/internal/slack"
@@ -77,20 +79,55 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 		return fmt.Errorf("failed to get IP addresses: %w", err)
 	}
 
-	var ips []string
+	var (
+		inputs []slack.PostMessageInput
+		errors []error
+	)
 
-	ips = append(ips, resp.ManagedKeysIPV4.Addresses...)
-	ips = append(ips, resp.ManagedKeysIPV6.Addresses...)
+	for _, ip := range resp.ManagedKeysIPV4.Addresses {
+		client := ipinfo.NewClient(nil, nil, config.IPInfoToken)
 
-	if len(ips) == 0 {
-		log.Println("No IPs were found. Skipping...")
-	} else {
-		log.Println("Sending Slack messages")
-
-		err = slack.PostMessage(config, ips)
+		info, err := client.GetIPInfo(net.ParseIP(ip))
 		if err != nil {
-			return fmt.Errorf("failed to post Slack message: %w", err)
+			errors = append(errors, fmt.Errorf("failed to get IP info: %w", err))
+			continue
 		}
+
+		inputs = append(inputs, slack.PostMessageInput{
+			IP:      ip,
+			City:    info.City,
+			Region:  info.Region,
+			Country: info.Country,
+			Org:     info.Org,
+		})
+	}
+
+	for _, ip := range resp.ManagedKeysIPV6.Addresses {
+		inputs = append(inputs, slack.PostMessageInput{
+			IP:      ip,
+			City:    "Unknown",
+			Region:  "Unknown",
+			Country: "Unknown",
+			Org:     "Unknown",
+		})
+	}
+
+	if len(inputs) == 0 {
+		log.Println("No IPs were found. Function exiting...")
+	}
+
+	log.Println("Sending Slack messages")
+
+	for _, input := range inputs {
+		err = slack.PostMessage(config, input)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to send Slack message: %w", err))
+			continue
+		}
+	}
+
+	if len(errors) == 0 {
+		return fmt.Errorf("errors were reported during function execution: %v", errors)
 	}
 
 	log.Println("Function complete")
