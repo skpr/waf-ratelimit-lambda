@@ -16,7 +16,7 @@ type Config struct {
 	SlackWebhookURL []string `mapstructure:"SLACK_WEBHOOK_URL"`
 }
 
-// Validate validates the config.
+// Validate checks that all required configuration is present.
 func (c Config) Validate() []string {
 	var errors []string
 
