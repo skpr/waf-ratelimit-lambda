@@ -5,22 +5,94 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/skpr/waf-ratelimit-lambda/internal/util"
 )
 
+type PostMessageInput struct {
+	IP      string
+	City    string
+	Region  string
+	Country string
+	Org     string
+}
+
+func (i PostMessageInput) Validate() error {
+	var errors []error
+
+	if i.IP == "" {
+		errors = append(errors, fmt.Errorf("IP is a required field"))
+	}
+
+	if i.City == "" {
+		errors = append(errors, fmt.Errorf("city is a required field"))
+	}
+
+	if i.Region == "" {
+		errors = append(errors, fmt.Errorf("region is a required field"))
+	}
+
+	if i.Country == "" {
+		errors = append(errors, fmt.Errorf("country is a required field"))
+	}
+
+	if i.Org == "" {
+		errors = append(errors, fmt.Errorf("org is a required field"))
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("invalid input: %v", errors)
+	}
+
+	return nil
+}
+
 // PostMessage to Slack channel.
-func PostMessage(config util.Config, ips []string) error {
+func PostMessage(config util.Config, input PostMessageInput) error {
 	message := Message{
 		Blocks: []Block{
 			{
 				Type: BlockTypeHeader,
 				Text: &BlockText{
 					Type: BlockTextTypePlainText,
-					Text: ":fire: Rate Limit Rule Triggered :fire:",
+					Text: ":waf: Rate Limiting Rule Triggered for IP",
+				},
+			},
+			{
+				Type: BlockTypeContext,
+				Elements: []BlockElement{
+					{
+						Type: BlockElementTypeMarkdown,
+						Text: aws.String(fmt.Sprintf("*IP* = %s", input.IP)),
+					},
+				},
+			},
+			{
+				Type: BlockTypeContext,
+				Elements: []BlockElement{
+					{
+						Type: BlockElementTypeMarkdown,
+						Text: aws.String(fmt.Sprintf("*City* = %s", input.City)),
+					},
+					{
+						Type: BlockElementTypeMarkdown,
+						Text: aws.String(fmt.Sprintf("*Region* = %s", input.Region)),
+					},
+					{
+						Type: BlockElementTypeMarkdown,
+						Text: aws.String(fmt.Sprintf("*Country* = %s", input.Country)),
+					},
+				},
+			},
+			{
+				Type: BlockTypeContext,
+				Elements: []BlockElement{
+					{
+						Type: BlockElementTypeMarkdown,
+						Text: aws.String(fmt.Sprintf("*Org* = %s", input.Org)),
+					},
 				},
 			},
 			{
@@ -38,13 +110,6 @@ func PostMessage(config util.Config, ips []string) error {
 						Type: BlockElementTypeMarkdown,
 						Text: aws.String(fmt.Sprintf("*Rule* = %s", config.RuleName)),
 					},
-				},
-			},
-			{
-				Type: BlockTypeSection,
-				Text: &BlockText{
-					Type: BlockTextTypeMarkdown,
-					Text: fmt.Sprintf("IP addresses currently rate limited:\n\n %s", strings.Join(ips, "\n")),
 				},
 			},
 		},
