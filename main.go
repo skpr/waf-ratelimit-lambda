@@ -119,18 +119,18 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 		})
 	}
 
-	if len(inputs) == 0 {
-		log.Println("No IPs were found. Function exiting...")
-	}
+	if len(inputs) > 0 {
+		log.Println("Sending Slack messages")
 
-	log.Println("Sending Slack messages")
-
-	for _, input := range inputs {
-		err = slack.PostMessage(config, input)
-		if err != nil {
-			errors = append(errors, fmt.Errorf("failed to send Slack message: %w", err))
-			continue
+		for _, input := range inputs {
+			err = slack.PostMessage(config, input)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("failed to send Slack message: %w", err))
+				continue
+			}
 		}
+	} else {
+		log.Println("No IPs were found. Skipping Slack messages...")
 	}
 
 	if len(errors) > 0 {
