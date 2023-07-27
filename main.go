@@ -17,6 +17,7 @@ import (
 	"github.com/ipinfo/go/v2/ipinfo"
 
 	"github.com/skpr/waf-ratelimit-lambda/internal/cloudwatch"
+	"github.com/skpr/waf-ratelimit-lambda/internal/iputils"
 	"github.com/skpr/waf-ratelimit-lambda/internal/slack"
 	"github.com/skpr/waf-ratelimit-lambda/internal/util"
 )
@@ -84,8 +85,14 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 		errors []error
 	)
 
-	for _, ip := range resp.ManagedKeysIPV4.Addresses {
+	for _, address := range resp.ManagedKeysIPV4.Addresses {
 		client := ipinfo.NewClient(nil, nil, config.IPInfoToken)
+
+		ip, err := iputils.GetIPfromCIDR(address)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to get IP info: %w", err))
+			continue
+		}
 
 		info, err := client.GetIPInfo(net.ParseIP(ip))
 		if err != nil {
@@ -94,7 +101,7 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 		}
 
 		inputs = append(inputs, slack.PostMessageInput{
-			IP:      ip,
+			IP:      address,
 			City:    info.City,
 			Region:  info.Region,
 			Country: info.Country,
