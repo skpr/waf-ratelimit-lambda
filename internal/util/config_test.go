@@ -63,6 +63,7 @@ func TestValidate(t *testing.T) {
 				WebACLId:        "web-acl-id",
 				WebACLName:      "web-acl-name",
 				RuleName:        "rule-name",
+				IPInfoToken:     "ipinfo-token",
 				SlackWebhookURL: []string{"http://example.com/slack-webhook"},
 			},
 			fails: false,
