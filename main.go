@@ -126,7 +126,7 @@ func HandleLambdaEvent(ctx context.Context, e events.CloudWatchEvent) error {
 		}
 	}
 
-	if len(errors) == 0 {
+	if len(errors) > 0 {
 		return fmt.Errorf("errors were reported during function execution: %v", errors)
 	}
 
