@@ -4,41 +4,52 @@ package wafv2
 
 import (
 	"context"
+	"fmt"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/wafv2/types"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Updates the specified RuleGroup. This operation completely replaces the mutable
-// specifications that you already have for the rule group with the ones that you
-// provide to this call. To modify a rule group, do the following:
+// Updates the specified RuleGroup.
 //
-// * Retrieve it
-// by calling GetRuleGroup
+// This operation completely replaces the mutable specifications that you already
+// have for the rule group with the ones that you provide to this call.
 //
-// * Update its settings as needed
+// To modify a rule group, do the following:
 //
-// * Provide the complete
-// rule group specification to this call
+//   - Retrieve it by calling GetRuleGroup
 //
-// When you make changes to web ACLs or web
-// ACL components, like rules and rule groups, WAF propagates the changes
-// everywhere that the web ACL and its components are stored and used. Your changes
-// are applied within seconds, but there might be a brief period of inconsistency
-// when the changes have arrived in some places and not in others. So, for example,
-// if you change a rule action setting, the action might be the old action in one
-// area and the new action in another area. Or if you add an IP address to an IP
-// set used in a blocking rule, the new address might briefly be blocked in one
-// area while still allowed in another. This temporary inconsistency can occur when
-// you first associate a web ACL with an Amazon Web Services resource and when you
-// change a web ACL that is already associated with a resource. Generally, any
-// inconsistencies of this type last only a few seconds. A rule group defines a
-// collection of rules to inspect and control web requests that you can use in a
-// WebACL. When you create a rule group, you define an immutable capacity limit. If
-// you update a rule group, you must stay within the capacity. This allows others
-// to reuse the rule group with confidence in its capacity requirements.
+//   - Update its settings as needed
+//
+//   - Provide the complete rule group specification to this call
+//
+// A rule group defines a collection of rules to inspect and control web requests
+// that you can use in a WebACL. When you create a rule group, you define an immutable
+// capacity limit. If you update a rule group, you must stay within the capacity.
+// This allows others to reuse the rule group with confidence in its capacity
+// requirements.
+//
+// # Temporary inconsistencies during updates
+//
+// When you create or change a web ACL or other WAF resources, the changes take a
+// small amount of time to propagate to all areas where the resources are stored.
+// The propagation time can be from a few seconds to a number of minutes.
+//
+// The following are examples of the temporary inconsistencies that you might
+// notice during change propagation:
+//
+//   - After you create a web ACL, if you try to associate it with a resource, you
+//     might get an exception indicating that the web ACL is unavailable.
+//
+//   - After you add a rule group to a web ACL, the new rule group rules might be
+//     in effect in one area where the web ACL is used and not in another.
+//
+//   - After you change a rule action setting, you might see the old action in
+//     some places and the new action in others.
+//
+//   - After you add an IP address to an IP set that is in use in a blocking rule,
+//     the new address might be blocked in one area while still allowed in another.
 func (c *Client) UpdateRuleGroup(ctx context.Context, params *UpdateRuleGroupInput, optFns ...func(*Options)) (*UpdateRuleGroupOutput, error) {
 	if params == nil {
 		params = &UpdateRuleGroupInput{}
@@ -65,36 +76,39 @@ type UpdateRuleGroupInput struct {
 	// A token used for optimistic locking. WAF returns a token to your get and list
 	// requests, to mark the state of the entity at the time of the request. To make
 	// changes to the entity associated with the token, you provide the token to
-	// operations like update and delete. WAF uses the token to ensure that no changes
+	// operations like update and delete . WAF uses the token to ensure that no changes
 	// have been made to the entity since you last retrieved it. If a change has been
-	// made, the update fails with a WAFOptimisticLockException. If this happens,
-	// perform another get, and use the new token returned by that operation.
+	// made, the update fails with a WAFOptimisticLockException . If this happens,
+	// perform another get , and use the new token returned by that operation.
 	//
 	// This member is required.
 	LockToken *string
 
-	// The name of the rule group. You cannot change the name of a rule group after you
-	// create it.
+	// The name of the rule group. You cannot change the name of a rule group after
+	// you create it.
 	//
 	// This member is required.
 	Name *string
 
 	// Specifies whether this is for an Amazon CloudFront distribution or for a
 	// regional application. A regional application can be an Application Load Balancer
-	// (ALB), an Amazon API Gateway REST API, an AppSync GraphQL API, or an Amazon
-	// Cognito user pool. To work with CloudFront, you must also specify the Region US
-	// East (N. Virginia) as follows:
+	// (ALB), an Amazon API Gateway REST API, an AppSync GraphQL API, an Amazon Cognito
+	// user pool, an App Runner service, or an Amazon Web Services Verified Access
+	// instance.
 	//
-	// * CLI - Specify the Region when you use the
-	// CloudFront scope: --scope=CLOUDFRONT --region=us-east-1.
+	// To work with CloudFront, you must also specify the Region US East (N. Virginia)
+	// as follows:
 	//
-	// * API and SDKs - For
-	// all calls, use the Region endpoint us-east-1.
+	//   - CLI - Specify the Region when you use the CloudFront scope:
+	//   --scope=CLOUDFRONT --region=us-east-1 .
+	//
+	//   - API and SDKs - For all calls, use the Region endpoint us-east-1.
 	//
 	// This member is required.
 	Scope types.Scope
 
-	// Defines and enables Amazon CloudWatch metrics and web request sample collection.
+	// Defines and enables Amazon CloudWatch metrics and web request sample
+	// collection.
 	//
 	// This member is required.
 	VisibilityConfig *types.VisibilityConfig
@@ -102,24 +116,24 @@ type UpdateRuleGroupInput struct {
 	// A map of custom response keys and content bodies. When you create a rule with a
 	// block action, you can send a custom response to the web request. You define
 	// these for the rule group, and then use them in the rules that you define in the
-	// rule group. For information about customizing web requests and responses, see
-	// Customizing web requests and responses in WAF
-	// (https://docs.aws.amazon.com/waf/latest/developerguide/waf-custom-request-response.html)
-	// in the WAF Developer Guide
-	// (https://docs.aws.amazon.com/waf/latest/developerguide/waf-chapter.html). For
-	// information about the limits on count and size for custom request and response
-	// settings, see WAF quotas
-	// (https://docs.aws.amazon.com/waf/latest/developerguide/limits.html) in the WAF
-	// Developer Guide
-	// (https://docs.aws.amazon.com/waf/latest/developerguide/waf-chapter.html).
+	// rule group.
+	//
+	// For information about customizing web requests and responses, see [Customizing web requests and responses in WAF] in the WAF
+	// Developer Guide.
+	//
+	// For information about the limits on count and size for custom request and
+	// response settings, see [WAF quotas]in the WAF Developer Guide.
+	//
+	// [WAF quotas]: https://docs.aws.amazon.com/waf/latest/developerguide/limits.html
+	// [Customizing web requests and responses in WAF]: https://docs.aws.amazon.com/waf/latest/developerguide/waf-custom-request-response.html
 	CustomResponseBodies map[string]types.CustomResponseBody
 
 	// A description of the rule group that helps with identification.
 	Description *string
 
-	// The Rule statements used to identify the web requests that you want to allow,
-	// block, or count. Each rule includes one top-level statement that WAF uses to
-	// identify matching web requests, and parameters that govern how WAF handles them.
+	// The Rule statements used to identify the web requests that you want to manage. Each
+	// rule includes one top-level statement that WAF uses to identify matching web
+	// requests, and parameters that govern how WAF handles them.
 	Rules []types.Rule
 
 	noSmithyDocumentSerde
@@ -128,7 +142,7 @@ type UpdateRuleGroupInput struct {
 type UpdateRuleGroupOutput struct {
 
 	// A token used for optimistic locking. WAF returns this token to your update
-	// requests. You use NextLockToken in the same manner as you use LockToken.
+	// requests. You use NextLockToken in the same manner as you use LockToken .
 	NextLockToken *string
 
 	// Metadata pertaining to the operation's result.
@@ -138,6 +152,9 @@ type UpdateRuleGroupOutput struct {
 }
 
 func (c *Client) addOperationUpdateRuleGroupMiddlewares(stack *middleware.Stack, options Options) (err error) {
+	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
+		return err
+	}
 	err = stack.Serialize.Add(&awsAwsjson11_serializeOpUpdateRuleGroup{}, middleware.After)
 	if err != nil {
 		return err
@@ -146,34 +163,41 @@ func (c *Client) addOperationUpdateRuleGroupMiddlewares(stack *middleware.Stack,
 	if err != nil {
 		return err
 	}
+	if err := addProtocolFinalizerMiddlewares(stack, options, "UpdateRuleGroup"); err != nil {
+		return fmt.Errorf("add protocol finalizers: %v", err)
+	}
+
+	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
+		return err
+	}
 	if err = addSetLoggerMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddClientRequestIDMiddleware(stack); err != nil {
+	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
-	if err = smithyhttp.AddComputeContentLengthMiddleware(stack); err != nil {
+	if err = addComputeContentLength(stack); err != nil {
 		return err
 	}
 	if err = addResolveEndpointMiddleware(stack, options); err != nil {
 		return err
 	}
-	if err = v4.AddComputePayloadSHA256Middleware(stack); err != nil {
+	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetryMiddlewares(stack, options); err != nil {
+	if err = addRetry(stack, options); err != nil {
 		return err
 	}
-	if err = addHTTPSignerV4Middleware(stack, options); err != nil {
+	if err = addRawResponseToMetadata(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRawResponseToMetadata(stack); err != nil {
+	if err = addRecordResponseTiming(stack); err != nil {
 		return err
 	}
-	if err = awsmiddleware.AddRecordResponseTiming(stack); err != nil {
+	if err = addSpanRetryLoop(stack, options); err != nil {
 		return err
 	}
-	if err = addClientUserAgent(stack); err != nil {
+	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -182,10 +206,22 @@ func (c *Client) addOperationUpdateRuleGroupMiddlewares(stack *middleware.Stack,
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
+	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
+		return err
+	}
+	if err = addTimeOffsetBuild(stack, c); err != nil {
+		return err
+	}
+	if err = addUserAgentRetryMode(stack, options); err != nil {
+		return err
+	}
 	if err = addOpUpdateRuleGroupValidationMiddleware(stack); err != nil {
 		return err
 	}
 	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opUpdateRuleGroup(options.Region), middleware.Before); err != nil {
+		return err
+	}
+	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addRequestIDRetrieverMiddleware(stack); err != nil {
@@ -197,6 +233,21 @@ func (c *Client) addOperationUpdateRuleGroupMiddlewares(stack *middleware.Stack,
 	if err = addRequestResponseLogging(stack, options); err != nil {
 		return err
 	}
+	if err = addDisableHTTPSMiddleware(stack, options); err != nil {
+		return err
+	}
+	if err = addSpanInitializeStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanInitializeEnd(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestStart(stack); err != nil {
+		return err
+	}
+	if err = addSpanBuildRequestEnd(stack); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -204,7 +255,6 @@ func newServiceMetadataMiddleware_opUpdateRuleGroup(region string) *awsmiddlewar
 	return &awsmiddleware.RegisterServiceMetadata{
 		Region:        region,
 		ServiceID:     ServiceID,
-		SigningName:   "wafv2",
 		OperationName: "UpdateRuleGroup",
 	}
 }
