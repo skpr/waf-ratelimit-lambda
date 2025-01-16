@@ -2,33 +2,35 @@ package ipinfo
 
 import (
 	"net"
+	"net/http"
 	"net/netip"
 )
 
 // Core represents data from the Core API.
 type Core struct {
 	IP              net.IP          `json:"ip" csv:"ip"`
-	Hostname        string          `json:"hostname,omitempty" csv:"hostname"`
-	Bogon           bool            `json:"bogon,omitempty" csv:"bogon"`
-	Anycast         bool            `json:"anycast,omitempty" csv:"anycast"`
-	City            string          `json:"city,omitempty" csv:"city"`
-	Region          string          `json:"region,omitempty" csv:"region"`
-	Country         string          `json:"country,omitempty" csv:"country"`
-	CountryName     string          `json:"country_name,omitempty" csv:"country_name"`
-	CountryFlag     CountryFlag     `json:"country_flag,omitempty" csv:"country_flag_,inline"`
-	CountryCurrency CountryCurrency `json:"country_currency,omitempty" csv:"country_currency_,inline"`
-	Continent       Continent       `json:"continent,omitempty" csv:"continent_,inline"`
-	IsEU            bool            `json:"isEU,omitempty" csv:"isEU"`
-	Location        string          `json:"loc,omitempty" csv:"loc"`
-	Org             string          `json:"org,omitempty" csv:"org"`
-	Postal          string          `json:"postal,omitempty" csv:"postal"`
-	Timezone        string          `json:"timezone,omitempty" csv:"timezone"`
-	ASN             *CoreASN        `json:"asn,omitempty" csv:"asn_,inline"`
-	Company         *CoreCompany    `json:"company,omitempty" csv:"company_,inline"`
-	Carrier         *CoreCarrier    `json:"carrier,omitempty" csv:"carrier_,inline"`
-	Privacy         *CorePrivacy    `json:"privacy,omitempty" csv:"privacy_,inline"`
-	Abuse           *CoreAbuse      `json:"abuse,omitempty" csv:"abuse_,inline"`
-	Domains         *CoreDomains    `json:"domains,omitempty" csv:"domains_,inline"`
+	Hostname        string          `json:"hostname,omitempty" csv:"hostname" yaml:"hostname,omitempty"`
+	Bogon           bool            `json:"bogon,omitempty" csv:"bogon" yaml:"bogon,omitempty"`
+	Anycast         bool            `json:"anycast,omitempty" csv:"anycast" yaml:"anycast,omitempty"`
+	City            string          `json:"city,omitempty" csv:"city" yaml:"city,omitempty"`
+	Region          string          `json:"region,omitempty" csv:"region" yaml:"region,omitempty"`
+	Country         string          `json:"country,omitempty" csv:"country" yaml:"country,omitempty"`
+	CountryName     string          `json:"country_name,omitempty" csv:"country_name" yaml:"countryName,omitempty"`
+	CountryFlag     CountryFlag     `json:"country_flag,omitempty" csv:"country_flag_,inline" yaml:"countryFlag,omitempty"`
+	CountryFlagURL  string          `json:"country_flag_url,omitempty" csv:"country_flag_url" yaml:"countryFlagURL,omitempty"`
+	CountryCurrency CountryCurrency `json:"country_currency,omitempty" csv:"country_currency_,inline" yaml:"countryCurrency,omitempty"`
+	Continent       Continent       `json:"continent,omitempty" csv:"continent_,inline" yaml:"continent,omitempty"`
+	IsEU            bool            `json:"isEU,omitempty" csv:"isEU" yaml:"isEU,omitempty"`
+	Location        string          `json:"loc,omitempty" csv:"loc" yaml:"location,omitempty"`
+	Org             string          `json:"org,omitempty" csv:"org" yaml:"org,omitempty"`
+	Postal          string          `json:"postal,omitempty" csv:"postal" yaml:"postal,omitempty"`
+	Timezone        string          `json:"timezone,omitempty" csv:"timezone" yaml:"timezone,omitempty"`
+	ASN             *CoreASN        `json:"asn,omitempty" csv:"asn_,inline" yaml:"asn,omitempty"`
+	Company         *CoreCompany    `json:"company,omitempty" csv:"company_,inline" yaml:"company,omitempty"`
+	Carrier         *CoreCarrier    `json:"carrier,omitempty" csv:"carrier_,inline" yaml:"carrier,omitempty"`
+	Privacy         *CorePrivacy    `json:"privacy,omitempty" csv:"privacy_,inline" yaml:"privacy,omitempty"`
+	Abuse           *CoreAbuse      `json:"abuse,omitempty" csv:"abuse_,inline" yaml:"abuse,omitempty"`
+	Domains         *CoreDomains    `json:"domains,omitempty" csv:"domains_,inline" yaml:"domains,omitempty"`
 }
 
 // CoreASN represents ASN data for the Core API.
@@ -88,6 +90,7 @@ func (v *Core) setCountryName() {
 		v.IsEU = IsEU(v.Country)
 		v.CountryFlag.Emoji = GetCountryFlagEmoji(v.Country)
 		v.CountryFlag.Unicode = GetCountryFlagUnicode(v.Country)
+		v.CountryFlagURL = GetCountryFlagURL(v.Country)
 		v.CountryCurrency.Code = GetCountryCurrencyCode(v.Country)
 		v.CountryCurrency.Symbol = GetCountryCurrencySymbol(v.Country)
 		v.Continent.Code = GetContinentCode(v.Country)
@@ -105,8 +108,22 @@ func GetIPInfo(ip net.IP) (*Core, error) {
 	return DefaultClient.GetIPInfo(ip)
 }
 
+// GetIPInfoV6 returns the details for the specified IPv6 IP.
+func GetIPInfoV6(ip net.IP) (*Core, error) {
+	return DefaultClient.GetIPInfoV6(ip)
+}
+
 // GetIPInfo returns the details for the specified IP.
 func (c *Client) GetIPInfo(ip net.IP) (*Core, error) {
+	return c.getIPInfoBase(ip, false)
+}
+
+// GetIPInfoV6 returns the details for the specified IPv6 IP.
+func (c *Client) GetIPInfoV6(ip net.IP) (*Core, error) {
+	return c.getIPInfoBase(ip, true)
+}
+
+func (c *Client) getIPInfoBase(ip net.IP, ipv6 bool) (*Core, error) {
 	relURL := ""
 	if ip != nil && isBogon(netip.MustParseAddr(ip.String())) {
 		bogonResponse := new(Core)
@@ -126,7 +143,13 @@ func (c *Client) GetIPInfo(ip net.IP) (*Core, error) {
 	}
 
 	// prepare req
-	req, err := c.newRequest(nil, "GET", relURL, nil)
+	var err error
+	var req *http.Request
+	if ipv6 {
+		req, err = c.newRequestV6(nil, "GET", relURL, nil)
+	} else {
+		req, err = c.newRequest(nil, "GET", relURL, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
