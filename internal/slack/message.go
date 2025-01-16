@@ -11,6 +11,7 @@ import (
 	"github.com/skpr/waf-ratelimit-lambda/internal/util"
 )
 
+// PostMessageInput is passed into the PostMessage function.
 type PostMessageInput struct {
 	IP      string
 	City    string
@@ -19,6 +20,7 @@ type PostMessageInput struct {
 	Org     string
 }
 
+// Validate the PostMessageInput valiues.
 func (i PostMessageInput) Validate() error {
 	var errors []error
 
